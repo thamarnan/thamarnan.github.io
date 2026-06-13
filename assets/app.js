@@ -18,6 +18,20 @@
   var zIndex = 40;
   var activeWindowId = null;
   var desktopMetrics = { nextOffset: 0 };
+  var THEME_STORAGE_KEY = "einsumos.theme";
+  var THEMES = {
+    xp: {
+      id: "xp",
+      label: "WinXP",
+      summary: "Current blue taskbar desktop"
+    },
+    win98: {
+      id: "win98",
+      label: "Win98",
+      summary: "Classic gray dialogs and teal desktop"
+    }
+  };
+  var currentTheme = readStoredTheme();
 
   var els = {
     boot: document.getElementById("boot-screen"),
@@ -33,6 +47,7 @@
     ownerName: document.getElementById("owner-name"),
     ownerRole: document.getElementById("owner-role"),
     allProjectsButton: document.getElementById("all-projects-button"),
+    settingsButton: document.getElementById("settings-button"),
     contactButton: document.getElementById("contact-button"),
     githubLink: document.getElementById("github-link")
   };
@@ -40,6 +55,7 @@
   document.addEventListener("DOMContentLoaded", init);
 
   function init() {
+    applyTheme(currentTheme);
     hydrateOwner();
     renderDesktopIcons();
     renderStartMenu();
@@ -145,17 +161,24 @@
   }
 
   function bindGlobalEvents() {
-    els.startButton.addEventListener("click", function (event) {
+    bindPressAction(els.startButton, function (event) {
       event.stopPropagation();
       toggleStartMenu();
     });
 
-    els.allProjectsButton.addEventListener("click", function () {
+    bindPressAction(els.allProjectsButton, function () {
       closeStartMenu();
       openApp(findProject("project-index"));
     });
 
-    els.contactButton.addEventListener("click", function () {
+    if (els.settingsButton) {
+      bindPressAction(els.settingsButton, function () {
+        closeStartMenu();
+        openApp(createSettingsProject());
+      });
+    }
+
+    bindPressAction(els.contactButton, function () {
       closeStartMenu();
       var contact = {
         id: "contact",
@@ -218,7 +241,7 @@
         label.textContent = project.title;
         button.appendChild(label);
 
-        button.addEventListener("click", function () {
+        bindPressAction(button, function () {
           openApp(project);
         });
 
@@ -269,7 +292,7 @@
         copy.append(title, summary);
         button.appendChild(copy);
 
-        button.addEventListener("click", function () {
+        bindPressAction(button, function () {
           closeStartMenu();
           openApp(project);
         });
@@ -297,7 +320,7 @@
       label.textContent = entry.project.title;
 
       button.append(dot, label);
-      button.addEventListener("click", function () {
+      bindPressAction(button, function () {
         if (entry.minimized || id !== activeWindowId) {
           restoreWindow(id);
         } else {
@@ -449,7 +472,27 @@
       return renderNativePage(project);
     }
 
+    if (project.type === "settings") {
+      return renderSettingsPage(project);
+    }
+
     return renderProjectPage(project);
+  }
+
+  function createSettingsProject() {
+    return {
+      id: "settings",
+      title: "Settings",
+      category: "System",
+      type: "settings",
+      icon: "settings",
+      accent: "#61788f",
+      summary: "Change EinsumOS preferences.",
+      window: {
+        width: 520,
+        height: 430
+      }
+    };
   }
 
   function renderNativePage(project) {
@@ -528,7 +571,7 @@
         openButton.type = "button";
         openButton.className = "action-button";
         openButton.textContent = "Open";
-        openButton.addEventListener("click", function () {
+        bindPressAction(openButton, function () {
           openApp(item);
         });
 
@@ -547,6 +590,63 @@
       });
 
     page.appendChild(grid);
+    return page;
+  }
+
+  function renderSettingsPage(project) {
+    var page = renderNativePage(
+      Object.assign({}, project, {
+        body: []
+      })
+    );
+
+    var settingsPanel = document.createElement("section");
+    settingsPanel.className = "settings-panel";
+
+    var sectionHeader = document.createElement("div");
+    sectionHeader.className = "settings-section-header";
+
+    var h2 = document.createElement("h2");
+    h2.textContent = "Theme";
+    var p = document.createElement("p");
+    p.textContent = "Choose the desktop style.";
+    sectionHeader.append(h2, p);
+
+    var options = document.createElement("div");
+    options.className = "theme-options";
+
+    Object.keys(THEMES).forEach(function (themeId) {
+      var theme = THEMES[themeId];
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "theme-option";
+      button.dataset.themeOption = theme.id;
+      button.setAttribute("aria-pressed", String(currentTheme === theme.id));
+
+      var swatch = document.createElement("span");
+      swatch.className = "theme-swatch theme-swatch-" + theme.id;
+      swatch.setAttribute("aria-hidden", "true");
+
+      var copy = document.createElement("span");
+      copy.className = "theme-option-copy";
+
+      var label = document.createElement("strong");
+      label.textContent = theme.label;
+      var summary = document.createElement("span");
+      summary.textContent = theme.summary;
+
+      copy.append(label, summary);
+      button.append(swatch, copy);
+
+      bindPressAction(button, function () {
+        setTheme(theme.id);
+      });
+
+      options.appendChild(button);
+    });
+
+    settingsPanel.append(sectionHeader, options);
+    page.appendChild(settingsPanel);
     return page;
   }
 
@@ -650,6 +750,9 @@
       link.target = "_blank";
       link.rel = "noreferrer";
     }
+    bindPressAction(link, function () {
+      openActionUrl(url);
+    }, { preventDefault: true });
     return link;
   }
 
@@ -662,21 +765,82 @@
   }
 
   function bindWindowControl(button, callback) {
+    bindPressAction(button, callback, { preventDefault: true });
+  }
+
+  function bindPressAction(element, callback, options) {
     var ignoreClickUntil = 0;
+    var config = Object.assign({ preventDefault: false }, options || {});
 
-    button.addEventListener("pointerup", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      ignoreClickUntil = Date.now() + 500;
-      callback();
-    });
-
-    button.addEventListener("click", function (event) {
-      event.stopPropagation();
-      if (Date.now() < ignoreClickUntil) {
+    element.addEventListener("pointerup", function (event) {
+      if (event.button !== undefined && event.button !== 0) {
         return;
       }
-      callback();
+      if (config.preventDefault) {
+        event.preventDefault();
+      }
+      event.stopPropagation();
+      ignoreClickUntil = Date.now() + 500;
+      callback(event);
+    });
+
+    element.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (Date.now() < ignoreClickUntil) {
+        if (config.preventDefault) {
+          event.preventDefault();
+        }
+        return;
+      }
+      if (config.preventDefault) {
+        event.preventDefault();
+      }
+      callback(event);
+    });
+  }
+
+  function openActionUrl(url) {
+    if (!url || url === "#") {
+      return;
+    }
+
+    if (url.startsWith("mailto:")) {
+      window.location.href = url;
+      return;
+    }
+
+    window.open(url, "_blank", "noreferrer");
+  }
+
+  function readStoredTheme() {
+    try {
+      var storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+      return THEMES[storedTheme] ? storedTheme : "xp";
+    } catch (error) {
+      return "xp";
+    }
+  }
+
+  function setTheme(themeId) {
+    currentTheme = THEMES[themeId] ? themeId : "xp";
+    applyTheme(currentTheme);
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+    } catch (error) {
+      // Ignore storage failures; the active page can still switch themes.
+    }
+
+    syncThemeButtons();
+  }
+
+  function applyTheme(themeId) {
+    document.documentElement.dataset.theme = themeId === "win98" ? "win98" : "xp";
+  }
+
+  function syncThemeButtons() {
+    document.querySelectorAll("[data-theme-option]").forEach(function (button) {
+      button.setAttribute("aria-pressed", String(button.dataset.themeOption === currentTheme));
     });
   }
 
