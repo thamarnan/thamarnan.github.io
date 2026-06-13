@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="EinsumOS, an XP-inspired desktop that launches project apps."
+    >
+    <title>EinsumOS</title>
+    <link rel="preload" href="assets/wallpaper.svg" as="image">
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body>
+    <div id="boot-screen" class="boot-screen" aria-hidden="true">
+      <div class="boot-card">
+        <div class="boot-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="boot-copy">
+          <p class="boot-title">EinsumOS</p>
+          <p class="boot-subtitle">Starting desktop...</p>
+        </div>
+        <div class="boot-meter" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
+
+    <div id="app" class="desktop-shell">
+      <main id="desktop" class="desktop" aria-label="EinsumOS desktop">
+        <section
+          id="desktop-icons"
+          class="desktop-icons"
+          aria-label="Desktop shortcuts"
+        ></section>
+        <section
+          id="window-layer"
+          class="window-layer"
+          aria-live="polite"
+          aria-label="Open application windows"
+        ></section>
+      </main>
+
+      <aside id="start-menu" class="start-menu" aria-label="Start menu" hidden>
+        <div class="start-profile">
+          <div id="owner-avatar" class="owner-avatar" aria-hidden="true">YN</div>
+          <div>
+            <p id="owner-name" class="owner-name">Your Name</p>
+            <p id="owner-role" class="owner-role">EinsumOS desktop</p>
+          </div>
+        </div>
+        <div class="start-body">
+          <nav id="start-programs" class="start-programs" aria-label="Applications"></nav>
+          <div class="start-side">
+            <button id="all-projects-button" class="side-link" type="button">
+              <span class="side-icon side-icon-projects" aria-hidden="true"></span>
+              <span>Projects</span>
+            </button>
+            <button id="contact-button" class="side-link" type="button">
+              <span class="side-icon side-icon-contact" aria-hidden="true"></span>
+              <span>Contact</span>
+            </button>
+            <a id="github-link" class="side-link" href="#" target="_blank" rel="noreferrer">
+              <span class="side-icon side-icon-code" aria-hidden="true"></span>
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <footer class="taskbar" aria-label="Taskbar">
+        <button
+          id="start-button"
+          class="start-button"
+          type="button"
+          aria-expanded="false"
+          aria-controls="start-menu"
+        >
+          <span class="start-logo" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </span>
+          <span>Start</span>
+        </button>
+        <div id="task-list" class="task-list" aria-label="Open apps"></div>
+        <div class="tray" aria-label="System tray">
+          <span class="tray-status" aria-hidden="true"></span>
+          <time id="clock" class="clock">--:--</time>
+        </div>
+      </footer>
+    </div>
+
+    <script src="data/projects.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

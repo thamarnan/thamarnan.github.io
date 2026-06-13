@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Abstract sunny desktop wallpaper">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#77bdf2"/>
+      <stop offset="0.42" stop-color="#b8def8"/>
+      <stop offset="1" stop-color="#f7f3d1"/>
+    </linearGradient>
+    <linearGradient id="hillA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7abd56"/>
+      <stop offset="0.55" stop-color="#3f9d52"/>
+      <stop offset="1" stop-color="#1f7d50"/>
+    </linearGradient>
+    <linearGradient id="hillB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c9d96a"/>
+      <stop offset="0.55" stop-color="#87bb52"/>
+      <stop offset="1" stop-color="#4c9043"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff8b4"/>
+      <stop offset="0.65" stop-color="#ffd86c"/>
+      <stop offset="1" stop-color="#f3a739"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <circle cx="1285" cy="185" r="82" fill="url(#sun)"/>
+  <circle cx="1285" cy="185" r="140" fill="#ffe38b" opacity="0.22" filter="url(#soft)"/>
+  <g fill="#fff" opacity="0.78">
+    <ellipse cx="230" cy="165" rx="82" ry="30"/>
+    <ellipse cx="300" cy="155" rx="98" ry="35"/>
+    <ellipse cx="375" cy="173" rx="72" ry="26"/>
+    <ellipse cx="1035" cy="284" rx="85" ry="30"/>
+    <ellipse cx="1110" cy="270" rx="102" ry="38"/>
+    <ellipse cx="1190" cy="288" rx="76" ry="28"/>
+  </g>
+  <path d="M0 705 C230 560 470 610 700 720 C930 830 1225 780 1600 560 L1600 1000 L0 1000 Z" fill="url(#hillB)"/>
+  <path d="M0 805 C235 640 455 625 720 765 C985 905 1205 875 1600 695 L1600 1000 L0 1000 Z" fill="url(#hillA)"/>
+  <path d="M0 840 C310 700 540 715 820 835 C1060 938 1325 925 1600 800 L1600 1000 L0 1000 Z" fill="#236f45" opacity="0.38"/>
+  <path d="M92 928 C300 828 480 840 668 922" fill="none" stroke="#d4e58a" stroke-width="4" opacity="0.38"/>
+  <path d="M910 900 C1110 805 1284 804 1510 878" fill="none" stroke="#d4e58a" stroke-width="4" opacity="0.35"/>
+</svg>

@@ -1,0 +1,86 @@
+window.EINSUMOS_OWNER = {
+  name: "thamarnan",
+  role: "Developer desktop",
+  avatarInitials: "TN",
+  github: "https://github.com/thamarnan",
+  email: "",
+  repo: "https://github.com/thamarnan/thamarnan.github.io"
+};
+
+window.EINSUMOS_PROJECTS = [
+  {
+    id: "about",
+    title: "About Me",
+    category: "System",
+    type: "native",
+    icon: "id",
+    accent: "#1b75bc",
+    showOnDesktop: true,
+    summary: "A compact profile, focus areas, and links.",
+    body: [
+      "EinsumOS opens individual project apps as windows.",
+      "Use the Start menu or desktop icons to launch live GitHub Pages projects."
+    ],
+    actions: [
+      {
+        label: "GitHub",
+        url: "https://github.com/thamarnan"
+      }
+    ]
+  },
+  {
+    id: "project-index",
+    title: "Projects",
+    category: "System",
+    type: "index",
+    icon: "apps",
+    accent: "#2c9b54",
+    showOnDesktop: true,
+    summary: "All EinsumOS applications in one window."
+  },
+  {
+    id: "cal",
+    title: "Cal",
+    category: "Applications",
+    type: "project",
+    icon: "board",
+    accent: "#2d89ef",
+    showOnDesktop: true,
+    summary: "Calendar app from the thamarnan/cal repository.",
+    url: "https://thamarnan.github.io/cal/",
+    repo: "https://github.com/thamarnan/cal",
+    launchMode: "window",
+    window: {
+      viewport: {
+        width: 496,
+        height: 816
+      },
+      autoFit: true
+    }
+  },
+  {
+    id: "resume",
+    title: "Resume",
+    category: "System",
+    type: "native",
+    icon: "doc",
+    accent: "#61788f",
+    showOnDesktop: false,
+    summary: "A focused resume window with links to the source and PDF.",
+    body: [
+      "Add a short role summary here, then link to a PDF or hosted resume page.",
+      "For GitHub Pages, place a PDF under assets/resume.pdf and set an action URL to that file."
+    ],
+    actions: [
+      {
+        label: "Resume PDF",
+        url: "assets/resume.pdf"
+      }
+    ]
+  }
+];
+
+window.EINSUMOS_MANIFESTS = [
+  // Add project-owned manifests later, for example:
+  // "/weather-app/einsumos.manifest.json"
+];
