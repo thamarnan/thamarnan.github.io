@@ -1,6 +1,11 @@
 :root {
   color-scheme: light;
-  --taskbar-height: 46px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --taskbar-core-height: 46px;
+  --taskbar-height: calc(var(--taskbar-core-height) + var(--safe-bottom));
   --blue-900: #064a9b;
   --blue-700: #0a65d8;
   --blue-500: #2d89ef;
@@ -28,6 +33,8 @@ body {
   overflow: hidden;
   background: #4ea2dc;
   color: var(--ink);
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 button,
@@ -43,6 +50,8 @@ button {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
+  min-height: 100svh;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
@@ -57,8 +66,8 @@ button {
 
 .desktop-icons {
   position: absolute;
-  top: 18px;
-  left: 18px;
+  top: calc(18px + var(--safe-top));
+  left: calc(18px + var(--safe-left));
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(2, 86px);
@@ -234,7 +243,7 @@ button {
 }
 
 .app-window.is-maximized {
-  inset: 8px 8px 10px !important;
+  inset: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) 10px calc(8px + var(--safe-left)) !important;
   width: auto !important;
   height: auto !important;
 }
@@ -251,6 +260,8 @@ button {
   padding: 4px 5px 4px 8px;
   color: #fff;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.04) 48%, rgba(0, 0, 0, 0.16) 49%),
     linear-gradient(90deg, #074ba4, #1d77e0 42%, #0c55b7);
@@ -298,6 +309,8 @@ button {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.1)),
     #2d81df;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .window-control:hover,
@@ -463,8 +476,12 @@ button {
 }
 
 .project-frame-wrap {
+  position: relative;
+  display: grid;
+  place-items: stretch;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
   background:
     linear-gradient(45deg, rgba(16, 100, 184, 0.08) 25%, transparent 25% 50%, rgba(16, 100, 184, 0.08) 50% 75%, transparent 75%),
     #e8f1fb;
@@ -476,6 +493,30 @@ button {
   height: 100%;
   border: 0;
   background: #fff;
+}
+
+.project-frame-wrap.has-fixed-viewport {
+  place-items: center;
+  padding: 8px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.project-frame-stage {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--scaled-viewport-width, 100%);
+  height: var(--scaled-viewport-height, 100%);
+}
+
+.project-frame-stage .project-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--app-viewport-width, 100%);
+  height: var(--app-viewport-height, 100%);
+  transform: scale(var(--app-scale, 1));
+  transform-origin: top left;
 }
 
 .project-placeholder {
@@ -791,6 +832,9 @@ button {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   height: var(--taskbar-height);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   border-top: 1px solid rgba(255, 255, 255, 0.45);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 36%, rgba(0, 0, 0, 0.18)),
@@ -1012,12 +1056,12 @@ button {
 
 @media (max-width: 720px) {
   :root {
-    --taskbar-height: 54px;
+    --taskbar-core-height: 54px;
   }
 
   .desktop-icons {
-    top: 12px;
-    left: 10px;
+    top: calc(12px + var(--safe-top));
+    left: calc(10px + var(--safe-left));
     grid-template-columns: repeat(2, 78px);
     grid-auto-rows: 90px;
     gap: 7px;
@@ -1033,15 +1077,60 @@ button {
   }
 
   .app-window {
-    min-width: calc(100vw - 18px);
+    min-width: 0;
+    border-radius: 7px 7px 3px 3px;
   }
 
   .window-titlebar {
-    height: 36px;
+    height: 44px;
+    padding: 4px 6px 4px 10px;
+  }
+
+  .window-title {
+    font-size: 14px;
+  }
+
+  .window-controls {
+    gap: 5px;
+  }
+
+  .window-control {
+    width: 42px;
+    height: 34px;
+  }
+
+  .window-control.minimize::before {
+    left: 14px;
+    right: 14px;
+    bottom: 9px;
+  }
+
+  .window-control.maximize::before {
+    left: 14px;
+    top: 10px;
+    width: 12px;
+    height: 10px;
+  }
+
+  .window-control.close::before,
+  .window-control.close::after {
+    left: 13px;
+    top: 16px;
+    width: 15px;
+  }
+
+  .window-content {
+    border-width: 2px;
+    border-top: 0;
+  }
+
+  .resize-handle {
+    display: none;
   }
 
   .start-menu {
-    right: 8px;
+    right: calc(8px + var(--safe-right));
+    left: calc(8px + var(--safe-left));
     width: auto;
   }
 

@@ -192,6 +192,10 @@
     });
 
     window.addEventListener("resize", keepWindowsInBounds);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", keepWindowsInBounds);
+      window.visualViewport.addEventListener("scroll", keepWindowsInBounds);
+    }
   }
 
   function renderDesktopIcons() {
@@ -355,6 +359,7 @@
     els.windowLayer.appendChild(appWindow);
     focusWindow(project.id);
     renderTasks();
+    scheduleFixedViewportScale(project.id);
   }
 
   function createWindow(project) {
@@ -422,13 +427,13 @@
       startResize(event, project.id);
     });
 
-    controls.querySelector(".minimize").addEventListener("click", function () {
+    bindWindowControl(controls.querySelector(".minimize"), function () {
       minimizeWindow(project.id);
     });
-    controls.querySelector(".maximize").addEventListener("click", function () {
+    bindWindowControl(controls.querySelector(".maximize"), function () {
       toggleMaximize(project.id);
     });
-    controls.querySelector(".close").addEventListener("click", function () {
+    bindWindowControl(controls.querySelector(".close"), function () {
       closeWindow(project.id);
     });
 
@@ -551,10 +556,27 @@
 
     var frameWrap = document.createElement("div");
     frameWrap.className = "project-frame-wrap";
+    var viewport = getConfiguredViewport(project);
+    var frameParent = frameWrap;
+
+    if (viewport) {
+      frameWrap.classList.add("has-fixed-viewport");
+      frameWrap.style.setProperty("--app-viewport-width", viewport.width + "px");
+      frameWrap.style.setProperty("--app-viewport-height", viewport.height + "px");
+
+      var frameStage = document.createElement("div");
+      frameStage.className = "project-frame-stage";
+      frameStage.dataset.frameStage = project.id;
+      frameStage.style.setProperty("--app-viewport-width", viewport.width + "px");
+      frameStage.style.setProperty("--app-viewport-height", viewport.height + "px");
+      frameWrap.appendChild(frameStage);
+      frameParent = frameStage;
+    }
 
     if (project.url && !isPlaceholderUrl(project.url)) {
       var frame = document.createElement("iframe");
       frame.className = "project-frame";
+      frame.dataset.frameWindowId = project.id;
       frame.title = project.title;
       frame.src = project.url;
       frame.loading = "lazy";
@@ -562,9 +584,9 @@
       frame.addEventListener("load", function () {
         scheduleFrameAutoFit(project.id, frame);
       });
-      frameWrap.appendChild(frame);
+      frameParent.appendChild(frame);
     } else {
-      frameWrap.appendChild(renderProjectPlaceholder(project));
+      frameParent.appendChild(renderProjectPlaceholder(project));
     }
 
     page.appendChild(frameWrap);
@@ -637,6 +659,25 @@
     button.className = "window-control " + className;
     button.setAttribute("aria-label", label);
     return button;
+  }
+
+  function bindWindowControl(button, callback) {
+    var ignoreClickUntil = 0;
+
+    button.addEventListener("pointerup", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      ignoreClickUntil = Date.now() + 500;
+      callback();
+    });
+
+    button.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (Date.now() < ignoreClickUntil) {
+        return;
+      }
+      callback();
+    });
   }
 
   function makeIcon(project, className) {
@@ -792,12 +833,14 @@
     entry.node.setPointerCapture(event.pointerId);
 
     function move(moveEvent) {
-      var maxWidth = Math.max(320, window.innerWidth - rect.left - 8);
-      var maxHeight = Math.max(250, window.innerHeight - rect.top - 56);
+      var desktopRect = els.desktop.getBoundingClientRect();
+      var maxWidth = Math.max(320, desktopRect.width - rect.left - 8);
+      var maxHeight = Math.max(250, desktopRect.height - rect.top - 8);
       var width = clamp(origin.width + moveEvent.clientX - origin.x, 320, maxWidth);
       var height = clamp(origin.height + moveEvent.clientY - origin.y, 260, maxHeight);
       entry.node.style.width = width + "px";
       entry.node.style.height = height + "px";
+      updateFixedViewportScale(id);
     }
 
     function stop() {
@@ -813,17 +856,17 @@
 
   function getInitialBounds(project) {
     var desktopRect = els.desktop.getBoundingClientRect();
-    var isSmall = window.innerWidth < 720;
+    var isSmall = isSmallViewport();
     var preferred = getPreferredWindowSize(project, desktopRect);
-    var width = isSmall ? desktopRect.width - 18 : preferred.width;
-    var height = isSmall ? desktopRect.height - 24 : preferred.height;
+    var width = isSmall ? desktopRect.width - 12 : preferred.width;
+    var height = isSmall ? desktopRect.height - 12 : preferred.height;
     var offset = desktopMetrics.nextOffset % 7;
     desktopMetrics.nextOffset += 1;
 
     if (isSmall) {
       return {
-        left: 9,
-        top: 10 + offset * 8,
+        left: 6,
+        top: 6,
         width: width,
         height: height
       };
@@ -864,17 +907,20 @@
 
   function getWindowChromeSize() {
     return {
-      width: 8,
-      height: window.innerWidth < 720 ? 41 : 37
+      width: isSmallViewport() ? 6 : 8,
+      height: isSmallViewport() ? 48 : 37
     };
   }
 
   function scheduleFrameAutoFit(id, frame) {
+    scheduleFixedViewportScale(id);
     window.setTimeout(function () {
       autoFitFrameWindow(id, frame);
+      scheduleFixedViewportScale(id);
     }, 80);
     window.setTimeout(function () {
       autoFitFrameWindow(id, frame);
+      scheduleFixedViewportScale(id);
     }, 600);
   }
 
@@ -895,6 +941,59 @@
     }
 
     resizeWindowToViewport(id, measured.width, measured.height);
+    scheduleFixedViewportScale(id);
+  }
+
+  function getConfiguredViewport(project) {
+    var viewport = project && project.window && project.window.viewport;
+    var width = viewport && Number(viewport.width);
+    var height = viewport && Number(viewport.height);
+
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return {
+      width: width,
+      height: height
+    };
+  }
+
+  function scheduleFixedViewportScale(id) {
+    window.requestAnimationFrame(function () {
+      updateFixedViewportScale(id);
+    });
+  }
+
+  function updateFixedViewportScale(id) {
+    var entry = windows.get(id);
+    if (!entry) {
+      return;
+    }
+
+    var viewport = getConfiguredViewport(entry.project);
+    if (!viewport) {
+      return;
+    }
+
+    var stage = entry.node.querySelector("[data-frame-stage='" + cssEscape(id) + "']");
+    var wrap = stage && stage.closest(".project-frame-wrap");
+    if (!stage || !wrap) {
+      return;
+    }
+
+    var wrapRect = wrap.getBoundingClientRect();
+    var availableWidth = Math.max(1, wrapRect.width - 16);
+    var availableHeight = Math.max(1, wrapRect.height - 16);
+    var scale = Math.min(1, availableWidth / viewport.width, availableHeight / viewport.height);
+    var scaledWidth = Math.floor(viewport.width * scale);
+    var scaledHeight = Math.floor(viewport.height * scale);
+
+    stage.style.setProperty("--app-scale", String(scale));
+    stage.style.setProperty("--scaled-viewport-width", scaledWidth + "px");
+    stage.style.setProperty("--scaled-viewport-height", scaledHeight + "px");
+    stage.style.width = scaledWidth + "px";
+    stage.style.height = scaledHeight + "px";
   }
 
   function measureFrameContent(frame, fitSelector) {
@@ -953,6 +1052,7 @@
     entry.node.style.height = height + "px";
     entry.node.style.left = bounds.left + "px";
     entry.node.style.top = bounds.top + "px";
+    scheduleFixedViewportScale(id);
   }
 
   function keepWindowsInBounds() {
@@ -961,20 +1061,23 @@
         return;
       }
       var rect = entry.node.getBoundingClientRect();
+      var desktopRect = els.desktop.getBoundingClientRect();
       var bounds = clampBounds(rect.left, rect.top, rect.width, rect.height);
       entry.node.style.left = bounds.left + "px";
       entry.node.style.top = bounds.top + "px";
-      entry.node.style.width = Math.min(rect.width, window.innerWidth - 18) + "px";
-      entry.node.style.height = Math.min(rect.height, window.innerHeight - 64) + "px";
+      entry.node.style.width = Math.min(rect.width, desktopRect.width - 12) + "px";
+      entry.node.style.height = Math.min(rect.height, desktopRect.height - 12) + "px";
+      scheduleFixedViewportScale(entry.project.id);
     });
   }
 
   function clampBounds(left, top, width, height) {
-    var maxLeft = Math.max(8, window.innerWidth - Math.min(width, window.innerWidth - 16) - 8);
-    var maxTop = Math.max(8, window.innerHeight - 54 - Math.min(height, window.innerHeight - 64));
+    var desktopRect = els.desktop.getBoundingClientRect();
+    var maxLeft = Math.max(6, desktopRect.width - Math.min(width, desktopRect.width - 12) - 6);
+    var maxTop = Math.max(6, desktopRect.height - Math.min(height, desktopRect.height - 12) - 6);
     return {
-      left: clamp(left, 8, maxLeft),
-      top: clamp(top, 8, maxTop)
+      left: clamp(left, 6, maxLeft),
+      top: clamp(top, 6, maxTop)
     };
   }
 
@@ -989,6 +1092,13 @@
 
   function isPlaceholderUrl(url) {
     return !url || /YOUR_GITHUB_USERNAME|example\.com/.test(url);
+  }
+
+  function isSmallViewport() {
+    var width = window.visualViewport && window.visualViewport.width
+      ? window.visualViewport.width
+      : window.innerWidth;
+    return width < 720;
   }
 
   function slugify(value) {
@@ -1016,5 +1126,12 @@
   function numberOr(value, fallback) {
     var number = Number(value);
     return Number.isFinite(number) && number > 0 ? number : fallback;
+  }
+
+  function cssEscape(value) {
+    if (window.CSS && window.CSS.escape) {
+      return window.CSS.escape(String(value));
+    }
+    return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   }
 })();
