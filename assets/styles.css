@@ -739,7 +739,7 @@ button {
   left: 8px;
   bottom: calc(var(--taskbar-height) - 2px);
   z-index: 1000;
-  width: min(450px, calc(100vw - 16px));
+  width: min(300px, calc(100vw - 16px));
   overflow: visible;
   border: 1px solid #073c80;
   border-radius: 8px 8px 2px 2px;
@@ -788,33 +788,18 @@ button {
 }
 
 .start-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 138px;
-  min-height: 320px;
+  display: block;
+  min-height: 0;
 }
 
 .start-programs {
   max-height: 420px;
-  overflow: auto;
+  overflow: visible;
   padding: 10px;
   background: #fff;
 }
 
-.start-category {
-  margin: 12px 0 6px;
-  color: #6b7280;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.start-category:first-child {
-  margin-top: 0;
-}
-
-.program-button,
-.side-link {
+.program-button {
   display: flex;
   width: 100%;
   align-items: center;
@@ -832,9 +817,7 @@ button {
 }
 
 .program-button:hover,
-.program-button:focus-visible,
-.side-link:hover,
-.side-link:focus-visible {
+.program-button:focus-visible {
   outline: none;
   border-color: #8bb9f0;
   background: linear-gradient(180deg, #f8fbff, #dcecff);
@@ -886,19 +869,10 @@ button {
   font-size: 12px;
 }
 
-.start-side {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  border-left: 1px solid #cddff4;
-  background: linear-gradient(180deg, #e8f3ff, #cfe2f7);
-}
-
 .programs-submenu {
   position: absolute;
   left: calc(100% - 1px);
-  bottom: 0;
+  top: 0;
   z-index: 1001;
   width: min(300px, calc(100vw - 24px));
   max-height: min(460px, calc(100vh - var(--taskbar-height) - 28px));
@@ -926,85 +900,6 @@ button {
 .programs-empty {
   margin: 8px 6px;
   color: var(--muted);
-}
-
-.side-icon {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  flex: 0 0 auto;
-  border-radius: 5px;
-  background: #fff;
-  box-shadow: inset 0 0 0 1px #8eaed2;
-}
-
-.side-icon::before,
-.side-icon::after {
-  content: "";
-  position: absolute;
-}
-
-.side-icon-projects::before {
-  inset: 5px;
-  border-radius: 3px;
-  border: 2px solid #2a7cd9;
-}
-
-.side-icon-contact::before {
-  left: 4px;
-  right: 4px;
-  top: 7px;
-  height: 10px;
-  border: 2px solid #2a9d46;
-  border-radius: 2px;
-}
-
-.side-icon-contact::after {
-  left: 6px;
-  right: 6px;
-  top: 8px;
-  height: 8px;
-  border-bottom: 2px solid #2a9d46;
-  transform: skewY(-28deg);
-}
-
-.side-icon-code::before,
-.side-icon-code::after {
-  top: 7px;
-  width: 7px;
-  height: 7px;
-  border: solid #d9514e;
-  border-width: 0 0 2px 2px;
-}
-
-.side-icon-code::before {
-  left: 6px;
-  transform: rotate(45deg);
-}
-
-.side-icon-code::after {
-  right: 6px;
-  transform: rotate(225deg);
-}
-
-.side-icon-settings::before {
-  inset: 5px;
-  border: 2px solid #61788f;
-  border-radius: 999px;
-}
-
-.side-icon-settings::after {
-  left: 10px;
-  top: 10px;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #61788f;
-  box-shadow:
-    0 -7px 0 -1px #61788f,
-    0 7px 0 -1px #61788f,
-    7px 0 0 -1px #61788f,
-    -7px 0 0 -1px #61788f;
 }
 
 .taskbar {
@@ -1328,22 +1223,14 @@ button {
   background: #c0c0c0;
 }
 
-[data-theme="win98"] .start-side {
-  border-left-color: #808080;
-  background: #c0c0c0;
-}
-
-[data-theme="win98"] .program-button,
-[data-theme="win98"] .side-link {
+[data-theme="win98"] .program-button {
   border-radius: 0;
   color: #000;
 }
 
 [data-theme="win98"] .program-button:hover,
 [data-theme="win98"] .program-button:focus-visible,
-[data-theme="win98"] .program-folder.is-open,
-[data-theme="win98"] .side-link:hover,
-[data-theme="win98"] .side-link:focus-visible {
+[data-theme="win98"] .program-folder.is-open {
   border-color: transparent;
   background: #000080;
   color: #fff;
@@ -1366,11 +1253,6 @@ button {
 
 [data-theme="win98"] .programs-submenu-title {
   color: #303030;
-}
-
-[data-theme="win98"] .side-icon {
-  border-radius: 0;
-  box-shadow: inset 0 0 0 1px #000;
 }
 
 [data-theme="win98"] .taskbar {
@@ -1594,26 +1476,6 @@ button {
     overflow: hidden;
   }
 
-  .start-body {
-    grid-template-columns: 1fr;
-  }
-
-  .start-side {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid #cddff4;
-    border-left: 0;
-  }
-
-  .side-link {
-    justify-content: center;
-    min-height: 46px;
-  }
-
-  .side-link span:last-child {
-    display: none;
-  }
-
   .programs-submenu {
     position: static;
     width: auto;
@@ -1628,9 +1490,9 @@ button {
   }
 
   .start-button {
-    min-width: 70px;
-    padding-right: 12px;
-    font-size: 0;
+    min-width: 82px;
+    padding-right: 10px;
+    font-size: 13px;
   }
 
   .start-logo {

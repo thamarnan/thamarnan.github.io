@@ -50,11 +50,7 @@
     clock: document.getElementById("clock"),
     ownerAvatar: document.getElementById("owner-avatar"),
     ownerName: document.getElementById("owner-name"),
-    ownerRole: document.getElementById("owner-role"),
-    allProjectsButton: document.getElementById("all-projects-button"),
-    settingsButton: document.getElementById("settings-button"),
-    contactButton: document.getElementById("contact-button"),
-    githubLink: document.getElementById("github-link")
+    ownerRole: document.getElementById("owner-role")
   };
 
   document.addEventListener("DOMContentLoaded", init);
@@ -79,7 +75,6 @@
     els.ownerAvatar.textContent = owner.avatarInitials || initials(owner.name);
     els.ownerName.textContent = owner.name;
     els.ownerRole.textContent = owner.role;
-    els.githubLink.href = owner.github || "#";
   }
 
   function normalizeProjects(rawProjects) {
@@ -171,42 +166,6 @@
       toggleStartMenu();
     });
 
-    bindPressAction(els.allProjectsButton, function () {
-      closeStartMenu();
-      openApp(findProject("project-index"));
-    });
-
-    if (els.settingsButton) {
-      bindPressAction(els.settingsButton, function () {
-        closeStartMenu();
-        openApp(createSettingsProject());
-      });
-    }
-
-    bindPressAction(els.contactButton, function () {
-      closeStartMenu();
-      var contact = {
-        id: "contact",
-        title: "Contact",
-        category: "System",
-        type: "native",
-        icon: "id",
-        accent: "#2a9d46",
-        summary: "Direct links for source, mail, and profile.",
-        body: [
-          "Use this small system window for the links visitors need after they review the projects."
-        ],
-        actions: [
-          { label: "Email", url: owner.email ? "mailto:" + owner.email : "" },
-          { label: "GitHub", url: owner.github },
-          { label: "EinsumOS Repo", url: owner.repo }
-        ].filter(function (action) {
-          return action.url && action.url !== "#";
-        })
-      };
-      openApp(contact);
-    });
-
     document.addEventListener("pointerdown", function (event) {
       if (!els.startMenu.hidden && !event.target.closest(".start-menu, .start-button")) {
         closeStartMenu();
@@ -266,29 +225,20 @@
     var appProjects = projects.filter(function (project) {
       return project.type === "project" && !project.hidden;
     });
-    var systemProjects = projects.filter(function (project) {
-      return project.type !== "project" && !project.hidden;
-    });
-
-    appendStartCategory("Menu");
     appendProgramsFolder(appProjects);
-
-    if (systemProjects.length) {
-      appendStartCategory("System");
-      systemProjects.forEach(function (project) {
-        els.startPrograms.appendChild(makeStartProgramButton(project, function () {
-          closeStartMenu();
-          openApp(project);
-        }));
-      });
-    }
+    appendStartEntry(findProject("project-index"));
+    appendStartEntry(createSettingsProject());
   }
 
-  function appendStartCategory(label) {
-    var heading = document.createElement("p");
-    heading.className = "start-category";
-    heading.textContent = label;
-    els.startPrograms.appendChild(heading);
+  function appendStartEntry(project) {
+    if (!project) {
+      return;
+    }
+
+    els.startPrograms.appendChild(makeStartProgramButton(project, function () {
+      closeStartMenu();
+      openApp(project);
+    }));
   }
 
   function appendProgramsFolder(appProjects) {
@@ -313,6 +263,12 @@
     button.appendChild(caret);
 
     button.addEventListener("mouseenter", function () {
+      if (!isSmallViewport()) {
+        setProgramsSubmenuOpen(true);
+      }
+    });
+
+    button.addEventListener("focus", function () {
       if (!isSmallViewport()) {
         setProgramsSubmenuOpen(true);
       }
@@ -391,6 +347,13 @@
 
     if (startMenuState.programsSubmenu) {
       startMenuState.programsSubmenu.hidden = !startMenuState.programsOpen;
+      if (startMenuState.programsOpen && startMenuState.programsButton && !isSmallViewport()) {
+        var buttonRect = startMenuState.programsButton.getBoundingClientRect();
+        var menuRect = els.startMenu.getBoundingClientRect();
+        startMenuState.programsSubmenu.style.top = Math.max(0, buttonRect.top - menuRect.top) + "px";
+      } else {
+        startMenuState.programsSubmenu.style.top = "";
+      }
     }
 
     if (startMenuState.programsButton) {
