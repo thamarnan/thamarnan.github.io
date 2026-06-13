@@ -18,17 +18,22 @@
   var zIndex = 40;
   var activeWindowId = null;
   var desktopMetrics = { nextOffset: 0 };
+  var startMenuState = {
+    programsButton: null,
+    programsSubmenu: null,
+    programsOpen: false
+  };
   var THEME_STORAGE_KEY = "einsumos.theme";
   var THEMES = {
-    xp: {
-      id: "xp",
-      label: "WinXP",
-      summary: "Current blue taskbar desktop"
-    },
     win98: {
       id: "win98",
       label: "Win98",
       summary: "Classic gray dialogs and teal desktop"
+    },
+    xp: {
+      id: "xp",
+      label: "WinXP",
+      summary: "Blue taskbar desktop"
     }
   };
   var currentTheme = readStoredTheme();
@@ -251,55 +256,147 @@
 
   function renderStartMenu() {
     els.startPrograms.replaceChildren();
-    var categories = new Map();
+    if (startMenuState.programsSubmenu) {
+      startMenuState.programsSubmenu.remove();
+    }
+    startMenuState.programsButton = null;
+    startMenuState.programsSubmenu = null;
+    startMenuState.programsOpen = false;
 
-    projects.forEach(function (project) {
-      if (project.hidden) {
-        return;
-      }
-      var category = project.category || "Applications";
-      if (!categories.has(category)) {
-        categories.set(category, []);
-      }
-      categories.get(category).push(project);
+    var appProjects = projects.filter(function (project) {
+      return project.type === "project" && !project.hidden;
+    });
+    var systemProjects = projects.filter(function (project) {
+      return project.type !== "project" && !project.hidden;
     });
 
-    categories.forEach(function (categoryProjects, category) {
-      var heading = document.createElement("p");
-      heading.className = "start-category";
-      heading.textContent = category;
-      els.startPrograms.appendChild(heading);
+    appendStartCategory("Menu");
+    appendProgramsFolder(appProjects);
 
-      categoryProjects.forEach(function (project) {
-        var button = document.createElement("button");
-        button.type = "button";
-        button.className = "program-button";
-        button.style.setProperty("--accent", project.accent);
-
-        button.appendChild(makeIcon(project, "app-icon"));
-
-        var copy = document.createElement("span");
-        copy.className = "program-copy";
-
-        var title = document.createElement("span");
-        title.className = "program-title";
-        title.textContent = project.title;
-
-        var summary = document.createElement("span");
-        summary.className = "program-summary";
-        summary.textContent = project.summary || project.url || "";
-
-        copy.append(title, summary);
-        button.appendChild(copy);
-
-        bindPressAction(button, function () {
+    if (systemProjects.length) {
+      appendStartCategory("System");
+      systemProjects.forEach(function (project) {
+        els.startPrograms.appendChild(makeStartProgramButton(project, function () {
           closeStartMenu();
           openApp(project);
-        });
-
-        els.startPrograms.appendChild(button);
+        }));
       });
+    }
+  }
+
+  function appendStartCategory(label) {
+    var heading = document.createElement("p");
+    heading.className = "start-category";
+    heading.textContent = label;
+    els.startPrograms.appendChild(heading);
+  }
+
+  function appendProgramsFolder(appProjects) {
+    var folder = {
+      id: "programs",
+      title: "Programs",
+      icon: "apps",
+      accent: "#2c9b54",
+      summary: appProjects.length === 1 ? "1 application" : appProjects.length + " applications"
+    };
+    var button = makeStartProgramButton(folder, function () {
+      setProgramsSubmenuOpen(!startMenuState.programsOpen);
     });
+    button.classList.add("program-folder");
+    button.setAttribute("aria-haspopup", "menu");
+    button.setAttribute("aria-expanded", "false");
+
+    var caret = document.createElement("span");
+    caret.className = "program-caret";
+    caret.textContent = ">";
+    caret.setAttribute("aria-hidden", "true");
+    button.appendChild(caret);
+
+    button.addEventListener("mouseenter", function () {
+      if (!isSmallViewport()) {
+        setProgramsSubmenuOpen(true);
+      }
+    });
+
+    button.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowRight" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setProgramsSubmenuOpen(true);
+      }
+    });
+
+    var submenu = document.createElement("aside");
+    submenu.id = "programs-submenu";
+    submenu.className = "programs-submenu";
+    submenu.setAttribute("role", "menu");
+    submenu.setAttribute("aria-label", "Programs");
+    submenu.hidden = true;
+
+    var title = document.createElement("p");
+    title.className = "programs-submenu-title";
+    title.textContent = "Programs";
+    submenu.appendChild(title);
+
+    if (!appProjects.length) {
+      var empty = document.createElement("p");
+      empty.className = "programs-empty";
+      empty.textContent = "No applications";
+      submenu.appendChild(empty);
+    } else {
+      appProjects.forEach(function (project) {
+        submenu.appendChild(makeStartProgramButton(project, function () {
+          closeStartMenu();
+          openApp(project);
+        }, "menuitem"));
+      });
+    }
+
+    startMenuState.programsButton = button;
+    startMenuState.programsSubmenu = submenu;
+    els.startPrograms.appendChild(button);
+    els.startMenu.appendChild(submenu);
+  }
+
+  function makeStartProgramButton(project, callback, role) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "program-button";
+    button.style.setProperty("--accent", project.accent);
+    if (role) {
+      button.setAttribute("role", role);
+    }
+
+    button.appendChild(makeIcon(project, "app-icon"));
+
+    var copy = document.createElement("span");
+    copy.className = "program-copy";
+
+    var title = document.createElement("span");
+    title.className = "program-title";
+    title.textContent = project.title;
+
+    var summary = document.createElement("span");
+    summary.className = "program-summary";
+    summary.textContent = project.summary || project.url || "";
+
+    copy.append(title, summary);
+    button.appendChild(copy);
+
+    bindPressAction(button, callback);
+    return button;
+  }
+
+  function setProgramsSubmenuOpen(isOpen) {
+    startMenuState.programsOpen = Boolean(isOpen);
+
+    if (startMenuState.programsSubmenu) {
+      startMenuState.programsSubmenu.hidden = !startMenuState.programsOpen;
+    }
+
+    if (startMenuState.programsButton) {
+      startMenuState.programsButton.classList.toggle("is-open", startMenuState.programsOpen);
+      startMenuState.programsButton.setAttribute("aria-expanded", String(startMenuState.programsOpen));
+    }
   }
 
   function renderTasks() {
@@ -341,6 +438,7 @@
   function closeStartMenu() {
     els.startMenu.hidden = true;
     els.startButton.setAttribute("aria-expanded", "false");
+    setProgramsSubmenuOpen(false);
   }
 
   function findProject(id) {
@@ -815,14 +913,14 @@
   function readStoredTheme() {
     try {
       var storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-      return THEMES[storedTheme] ? storedTheme : "xp";
+      return THEMES[storedTheme] ? storedTheme : "win98";
     } catch (error) {
-      return "xp";
+      return "win98";
     }
   }
 
   function setTheme(themeId) {
-    currentTheme = THEMES[themeId] ? themeId : "xp";
+    currentTheme = THEMES[themeId] ? themeId : "win98";
     applyTheme(currentTheme);
 
     try {
@@ -835,7 +933,7 @@
   }
 
   function applyTheme(themeId) {
-    document.documentElement.dataset.theme = themeId === "win98" ? "win98" : "xp";
+    document.documentElement.dataset.theme = themeId === "xp" ? "xp" : "win98";
   }
 
   function syncThemeButtons() {
@@ -849,6 +947,16 @@
     icon.className = className;
     icon.style.setProperty("--accent", project.accent || "#2d89ef");
     icon.setAttribute("aria-hidden", "true");
+
+    if (project.iconUrl) {
+      var image = document.createElement("img");
+      image.className = "app-icon-image";
+      image.src = project.iconUrl;
+      image.alt = "";
+      image.loading = "lazy";
+      icon.appendChild(image);
+      return icon;
+    }
 
     var glyph = document.createElement("span");
     glyph.className = "glyph glyph-" + (project.icon || "apps");

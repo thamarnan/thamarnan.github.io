@@ -1,6 +1,6 @@
 # EinsumOS
 
-EinsumOS is a static GitHub Pages desktop shell that opens project sites through an XP-inspired interface. It has desktop shortcuts, a Start menu, draggable windows, taskbar buttons, and iframe-based project launchers.
+EinsumOS is a static GitHub Pages desktop shell that opens project sites through a retro desktop interface. It has desktop shortcuts, a Start menu, draggable windows, taskbar buttons, themes, and iframe-based project launchers.
 
 The visual style is nostalgic but uses original assets and CSS, not Microsoft-owned wallpapers, logos, or icons.
 
@@ -99,6 +99,28 @@ If the app HTML has default body margin, include that in the viewport size or re
 ```
 
 Use the app's natural viewport size. For small portrait apps, use something like `480 x 800`. For dashboard-style apps, use something like `1000 x 700`.
+
+## Custom App Icons
+
+The simplest reliable icon path is a square transparent PNG or WebP stored in this repo:
+
+```txt
+assets/icons/notes.png
+```
+
+Then reference it from the project entry:
+
+```js
+{
+  id: "notes-app",
+  title: "Notes",
+  iconUrl: "assets/icons/notes.png",
+  url: "https://YOUR_GITHUB_USERNAME.github.io/notes-app/",
+  repo: "https://github.com/YOUR_GITHUB_USERNAME/notes-app"
+}
+```
+
+Use `64 x 64` or `96 x 96` for pixel-art icons. Use `128 x 128` or larger for smoother modern icons. Keep the background transparent and avoid tiny text inside the icon.
 
 ## Optional Dynamic Manifests
 
