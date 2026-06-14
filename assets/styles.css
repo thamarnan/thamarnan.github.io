@@ -1175,20 +1175,25 @@ button {
 }
 
 [data-theme="win98"] .window-control.external::before {
-  left: 7px;
-  top: 5px;
-  width: 2px;
-  height: 9px;
+  left: 4px;
+  top: 7px;
+  width: 7px;
+  height: 6px;
+  border: 2px solid #000;
+  background: transparent;
 }
 
 [data-theme="win98"] .window-control.external::after {
-  left: 5px;
+  left: 8px;
   top: 4px;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-top: 2px solid #000;
-  border-left: 2px solid #000;
+  border-right: 2px solid #000;
+  border-left: 0;
   background: transparent;
+  box-shadow: 2px -2px 0 -1px #000;
+  transform: rotate(0deg);
 }
 
 [data-theme="win98"] .window-control.close {
