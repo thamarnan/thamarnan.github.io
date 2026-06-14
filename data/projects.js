@@ -59,6 +59,25 @@ window.ARCTOS_PROJECTS = [
     }
   },
   {
+    id: "compactcalendar",
+    title: "Compact Calendar",
+    category: "Applications",
+    type: "project",
+    icon: "calendar",
+    accent: "#1f6feb",
+    showOnDesktop: true,
+    summary: "Compact year calendar with event labels, import/export, and profiles.",
+    url: "https://mee-pooh.com/compactcalendar/",
+    repo: "https://github.com/thamarnan/compactcalendar",
+    launchMode: "window",
+    window: {
+      width: 1120,
+      height: 740,
+      minWidth: 720,
+      minHeight: 520
+    }
+  },
+  {
     id: "resume",
     title: "Resume",
     category: "System",
