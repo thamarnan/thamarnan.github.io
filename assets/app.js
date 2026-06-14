@@ -18,6 +18,15 @@
   var zIndex = 40;
   var activeWindowId = null;
   var desktopMetrics = { nextOffset: 0 };
+  var DESKTOP_LAYOUT_STORAGE_KEY = "arctos.desktop.layout";
+  var DESKTOP_DRAG_THRESHOLD = 4;
+  var DESKTOP_DOUBLE_OPEN_DELAY = 500;
+  var desktopIconState = {
+    positions: readStoredDesktopLayout(),
+    selectedIds: new Set(),
+    nodes: new Map(),
+    lastClick: { id: null, time: 0 }
+  };
   var startMenuState = {
     programsButton: null,
     programsSubmenu: null,
@@ -166,6 +175,8 @@
       toggleStartMenu();
     });
 
+    els.desktopIcons.addEventListener("pointerdown", startDesktopSelection);
+
     document.addEventListener("pointerdown", function (event) {
       if (!els.startMenu.hidden && !event.target.closest(".start-menu, .start-button")) {
         closeStartMenu();
@@ -178,39 +189,445 @@
       }
     });
 
-    window.addEventListener("resize", keepWindowsInBounds);
+    window.addEventListener("resize", keepDesktopStateInBounds);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", keepWindowsInBounds);
-      window.visualViewport.addEventListener("scroll", keepWindowsInBounds);
+      window.visualViewport.addEventListener("resize", keepDesktopStateInBounds);
+      window.visualViewport.addEventListener("scroll", keepDesktopStateInBounds);
     }
   }
 
   function renderDesktopIcons() {
+    var desktopProjects = projects.filter(function (project) {
+      return project.showOnDesktop !== false;
+    });
+
+    pruneDesktopIconState(desktopProjects);
     els.desktopIcons.replaceChildren();
-    projects
-      .filter(function (project) {
-        return project.showOnDesktop !== false;
-      })
-      .forEach(function (project) {
-        var button = document.createElement("button");
-        button.type = "button";
-        button.className = "shortcut";
-        button.style.setProperty("--accent", project.accent);
-        button.setAttribute("aria-label", "Open " + project.title);
+    desktopIconState.nodes.clear();
 
-        button.appendChild(makeIcon(project, "shortcut-icon"));
+    desktopProjects.forEach(function (project, index) {
+      var button = document.createElement("button");
+      var position = getDesktopIconPosition(project, index);
+      button.type = "button";
+      button.className = "shortcut";
+      button.dataset.projectId = project.id;
+      button.style.setProperty("--accent", project.accent);
+      button.setAttribute("aria-label", project.title + ". Double click to open.");
+      button.setAttribute("aria-pressed", String(desktopIconState.selectedIds.has(project.id)));
+      setDesktopIconNodePosition(button, position);
 
-        var label = document.createElement("span");
-        label.className = "shortcut-label";
-        label.textContent = project.title;
-        button.appendChild(label);
+      button.appendChild(makeIcon(project, "shortcut-icon"));
 
-        bindPressAction(button, function () {
-          openApp(project);
-        });
+      var label = document.createElement("span");
+      label.className = "shortcut-label";
+      label.textContent = project.title;
+      button.appendChild(label);
 
-        els.desktopIcons.appendChild(button);
+      button.addEventListener("pointerdown", function (event) {
+        startDesktopIconPointer(event, project);
       });
+
+      button.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openApp(project);
+        }
+      });
+
+      desktopIconState.nodes.set(project.id, button);
+      els.desktopIcons.appendChild(button);
+    });
+
+    syncDesktopIconSelection();
+    keepDesktopIconsInBounds();
+  }
+
+  function startDesktopIconPointer(event, project) {
+    if (event.button !== undefined && event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    closeStartMenu();
+
+    var id = project.id;
+    var additive = event.shiftKey || event.metaKey || event.ctrlKey;
+    var wasSelected = desktopIconState.selectedIds.has(id);
+
+    if (additive && wasSelected) {
+      desktopIconState.selectedIds.delete(id);
+      syncDesktopIconSelection();
+      return;
+    }
+
+    if (additive) {
+      desktopIconState.selectedIds.add(id);
+    } else if (!wasSelected) {
+      desktopIconState.selectedIds.clear();
+      desktopIconState.selectedIds.add(id);
+    }
+
+    syncDesktopIconSelection();
+
+    var ids = Array.from(desktopIconState.selectedIds);
+    var startPositions = ids.map(function (selectedId) {
+      return {
+        id: selectedId,
+        position: Object.assign({}, desktopIconState.positions[selectedId])
+      };
+    });
+    var origin = {
+      x: event.clientX,
+      y: event.clientY
+    };
+    var drag = {
+      moved: false,
+      additive: additive,
+      startPositions: startPositions,
+      origin: origin
+    };
+    var button = desktopIconState.nodes.get(id);
+
+    if (!button) {
+      return;
+    }
+
+    button.setPointerCapture(event.pointerId);
+
+    function move(moveEvent) {
+      var dx = moveEvent.clientX - drag.origin.x;
+      var dy = moveEvent.clientY - drag.origin.y;
+
+      if (!drag.moved && Math.hypot(dx, dy) < DESKTOP_DRAG_THRESHOLD) {
+        return;
+      }
+
+      drag.moved = true;
+      button.classList.add("is-dragging");
+      moveSelectedDesktopIcons(drag.startPositions, dx, dy);
+    }
+
+    function stop(stopEvent) {
+      button.removeEventListener("pointermove", move);
+      button.removeEventListener("pointerup", stop);
+      button.removeEventListener("pointercancel", stop);
+      button.classList.remove("is-dragging");
+
+      try {
+        button.releasePointerCapture(stopEvent.pointerId);
+      } catch (error) {
+        // Pointer capture may already be gone if the browser cancelled the pointer.
+      }
+
+      if (drag.moved) {
+        desktopIconState.lastClick = { id: null, time: 0 };
+        saveDesktopLayout();
+        return;
+      }
+
+      if (!drag.additive) {
+        desktopIconState.selectedIds.clear();
+        desktopIconState.selectedIds.add(id);
+        syncDesktopIconSelection();
+      }
+
+      handleDesktopIconOpenIntent(project);
+    }
+
+    button.addEventListener("pointermove", move);
+    button.addEventListener("pointerup", stop);
+    button.addEventListener("pointercancel", stop);
+  }
+
+  function handleDesktopIconOpenIntent(project) {
+    var now = Date.now();
+    var isDoubleOpen = desktopIconState.lastClick.id === project.id
+      && now - desktopIconState.lastClick.time <= DESKTOP_DOUBLE_OPEN_DELAY;
+
+    if (isDoubleOpen) {
+      desktopIconState.lastClick = { id: null, time: 0 };
+      openApp(project);
+      return;
+    }
+
+    desktopIconState.lastClick = { id: project.id, time: now };
+  }
+
+  function startDesktopSelection(event) {
+    if (event.button !== undefined && event.button !== 0) {
+      return;
+    }
+    if (event.target.closest(".shortcut")) {
+      return;
+    }
+
+    event.preventDefault();
+    closeStartMenu();
+
+    var additive = event.shiftKey || event.metaKey || event.ctrlKey;
+    var baseSelected = new Set(additive ? desktopIconState.selectedIds : []);
+    var desktopRect = els.desktopIcons.getBoundingClientRect();
+    var origin = {
+      x: event.clientX - desktopRect.left,
+      y: event.clientY - desktopRect.top
+    };
+    var moved = false;
+    var selectionBox = document.createElement("div");
+    selectionBox.className = "desktop-selection-box";
+    selectionBox.hidden = true;
+    els.desktopIcons.appendChild(selectionBox);
+
+    if (!additive) {
+      desktopIconState.lastClick = { id: null, time: 0 };
+      desktopIconState.selectedIds.clear();
+      syncDesktopIconSelection();
+    }
+
+    els.desktopIcons.setPointerCapture(event.pointerId);
+
+    function move(moveEvent) {
+      var current = {
+        x: moveEvent.clientX - desktopRect.left,
+        y: moveEvent.clientY - desktopRect.top
+      };
+      var dx = current.x - origin.x;
+      var dy = current.y - origin.y;
+
+      if (!moved && Math.hypot(dx, dy) < DESKTOP_DRAG_THRESHOLD) {
+        return;
+      }
+
+      moved = true;
+      selectionBox.hidden = false;
+      updateSelectionBox(selectionBox, origin, current);
+      selectDesktopIconsInRect(getNormalizedRect(origin, current), baseSelected);
+    }
+
+    function stop(stopEvent) {
+      els.desktopIcons.removeEventListener("pointermove", move);
+      els.desktopIcons.removeEventListener("pointerup", stop);
+      els.desktopIcons.removeEventListener("pointercancel", stop);
+      selectionBox.remove();
+
+      try {
+        els.desktopIcons.releasePointerCapture(stopEvent.pointerId);
+      } catch (error) {
+        // Pointer capture may already be gone if the browser cancelled the pointer.
+      }
+
+      if (!moved && !additive) {
+        desktopIconState.selectedIds.clear();
+        syncDesktopIconSelection();
+      }
+    }
+
+    els.desktopIcons.addEventListener("pointermove", move);
+    els.desktopIcons.addEventListener("pointerup", stop);
+    els.desktopIcons.addEventListener("pointercancel", stop);
+  }
+
+  function moveSelectedDesktopIcons(startPositions, dx, dy) {
+    var boundedDelta = getBoundedDesktopIconDelta(startPositions, dx, dy);
+
+    startPositions.forEach(function (entry) {
+      setDesktopIconPosition(entry.id, {
+        x: entry.position.x + boundedDelta.dx,
+        y: entry.position.y + boundedDelta.dy
+      });
+    });
+  }
+
+  function getBoundedDesktopIconDelta(startPositions, dx, dy) {
+    var desktopRect = els.desktop.getBoundingClientRect();
+    var metrics = getDesktopIconMetrics();
+    var minDx = -Infinity;
+    var maxDx = Infinity;
+    var minDy = -Infinity;
+    var maxDy = Infinity;
+
+    startPositions.forEach(function (entry) {
+      minDx = Math.max(minDx, -entry.position.x);
+      maxDx = Math.min(maxDx, desktopRect.width - metrics.width - entry.position.x);
+      minDy = Math.max(minDy, -entry.position.y);
+      maxDy = Math.min(maxDy, desktopRect.height - metrics.height - entry.position.y);
+    });
+
+    return {
+      dx: clamp(dx, minDx, maxDx),
+      dy: clamp(dy, minDy, maxDy)
+    };
+  }
+
+  function selectDesktopIconsInRect(selectionRect, baseSelected) {
+    var metrics = getDesktopIconMetrics();
+    var nextSelected = new Set(baseSelected);
+
+    desktopIconState.nodes.forEach(function (_node, id) {
+      var position = desktopIconState.positions[id];
+      var iconRect = {
+        left: position.x,
+        top: position.y,
+        right: position.x + metrics.width,
+        bottom: position.y + metrics.height
+      };
+
+      if (rectsIntersect(selectionRect, iconRect)) {
+        nextSelected.add(id);
+      }
+    });
+
+    desktopIconState.selectedIds = nextSelected;
+    syncDesktopIconSelection();
+  }
+
+  function updateSelectionBox(selectionBox, origin, current) {
+    var rect = getNormalizedRect(origin, current);
+    selectionBox.style.left = rect.left + "px";
+    selectionBox.style.top = rect.top + "px";
+    selectionBox.style.width = rect.right - rect.left + "px";
+    selectionBox.style.height = rect.bottom - rect.top + "px";
+  }
+
+  function getNormalizedRect(origin, current) {
+    return {
+      left: Math.min(origin.x, current.x),
+      top: Math.min(origin.y, current.y),
+      right: Math.max(origin.x, current.x),
+      bottom: Math.max(origin.y, current.y)
+    };
+  }
+
+  function rectsIntersect(a, b) {
+    return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+  }
+
+  function getDesktopIconPosition(project, index) {
+    if (!desktopIconState.positions[project.id]) {
+      desktopIconState.positions[project.id] = getDefaultDesktopIconPosition(index);
+    }
+
+    desktopIconState.positions[project.id] = clampDesktopIconPosition(desktopIconState.positions[project.id]);
+    return desktopIconState.positions[project.id];
+  }
+
+  function getDefaultDesktopIconPosition(index) {
+    var metrics = getDesktopIconMetrics();
+    var column = index % metrics.columns;
+    var row = Math.floor(index / metrics.columns);
+
+    return {
+      x: metrics.startX + column * (metrics.width + metrics.gapX),
+      y: metrics.startY + row * (metrics.height + metrics.gapY)
+    };
+  }
+
+  function getDesktopIconMetrics() {
+    if (isSmallViewport()) {
+      return {
+        width: 78,
+        height: 90,
+        startX: 10,
+        startY: 12,
+        gapX: 7,
+        gapY: 7,
+        columns: 2
+      };
+    }
+
+    return {
+      width: 86,
+      height: 96,
+      startX: 18,
+      startY: 18,
+      gapX: 12,
+      gapY: 10,
+      columns: 2
+    };
+  }
+
+  function setDesktopIconPosition(id, position) {
+    var clamped = clampDesktopIconPosition(position);
+    var node = desktopIconState.nodes.get(id);
+    desktopIconState.positions[id] = clamped;
+
+    if (node) {
+      setDesktopIconNodePosition(node, clamped);
+    }
+  }
+
+  function setDesktopIconNodePosition(node, position) {
+    node.style.setProperty("--icon-x", Math.round(position.x) + "px");
+    node.style.setProperty("--icon-y", Math.round(position.y) + "px");
+  }
+
+  function clampDesktopIconPosition(position) {
+    var desktopRect = els.desktop.getBoundingClientRect();
+    var metrics = getDesktopIconMetrics();
+    var maxX = Math.max(0, desktopRect.width - metrics.width);
+    var maxY = Math.max(0, desktopRect.height - metrics.height);
+
+    return {
+      x: clamp(numberOrZero(position.x), 0, maxX),
+      y: clamp(numberOrZero(position.y), 0, maxY)
+    };
+  }
+
+  function pruneDesktopIconState(desktopProjects) {
+    var visibleIds = new Set(
+      desktopProjects.map(function (project) {
+        return project.id;
+      })
+    );
+
+    desktopIconState.selectedIds.forEach(function (id) {
+      if (!visibleIds.has(id)) {
+        desktopIconState.selectedIds.delete(id);
+      }
+    });
+
+    Object.keys(desktopIconState.positions).forEach(function (id) {
+      if (!visibleIds.has(id)) {
+        delete desktopIconState.positions[id];
+      }
+    });
+  }
+
+  function syncDesktopIconSelection() {
+    desktopIconState.nodes.forEach(function (node, id) {
+      var isSelected = desktopIconState.selectedIds.has(id);
+      node.classList.toggle("is-selected", isSelected);
+      node.setAttribute("aria-pressed", String(isSelected));
+    });
+  }
+
+  function keepDesktopIconsInBounds() {
+    desktopIconState.nodes.forEach(function (_node, id) {
+      setDesktopIconPosition(id, desktopIconState.positions[id]);
+    });
+    saveDesktopLayout();
+  }
+
+  function keepDesktopStateInBounds() {
+    keepWindowsInBounds();
+    keepDesktopIconsInBounds();
+  }
+
+  function readStoredDesktopLayout() {
+    try {
+      var parsed = JSON.parse(window.localStorage.getItem(DESKTOP_LAYOUT_STORAGE_KEY) || "{}");
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveDesktopLayout() {
+    try {
+      window.localStorage.setItem(DESKTOP_LAYOUT_STORAGE_KEY, JSON.stringify(desktopIconState.positions));
+    } catch (error) {
+      // Ignore storage failures; movable icons still work for the current session.
+    }
   }
 
   function renderStartMenu() {
@@ -472,6 +889,12 @@
 
     var controls = document.createElement("div");
     controls.className = "window-controls";
+
+    var externalUrl = getExternalLaunchUrl(project);
+    if (externalUrl) {
+      controls.appendChild(makeWindowControl("external", "Open live app in a new window"));
+    }
+
     controls.append(
       makeWindowControl("minimize", "Minimize"),
       makeWindowControl("maximize", "Maximize"),
@@ -511,6 +934,11 @@
       startResize(event, project.id);
     });
 
+    if (externalUrl) {
+      bindWindowControl(controls.querySelector(".external"), function () {
+        openExternalProject(project);
+      });
+    }
     bindWindowControl(controls.querySelector(".minimize"), function () {
       minimizeWindow(project.id);
     });
@@ -822,6 +1250,7 @@
     button.type = "button";
     button.className = "window-control " + className;
     button.setAttribute("aria-label", label);
+    button.title = label;
     return button;
   }
 
@@ -871,6 +1300,19 @@
     }
 
     window.open(url, "_blank", "noreferrer");
+  }
+
+  function getExternalLaunchUrl(project) {
+    return project && project.url && !isPlaceholderUrl(project.url) ? project.url : "";
+  }
+
+  function openExternalProject(project) {
+    var url = getExternalLaunchUrl(project);
+    if (!url) {
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function readStoredTheme() {
@@ -1361,6 +1803,11 @@
   function numberOr(value, fallback) {
     var number = Number(value);
     return Number.isFinite(number) && number > 0 ? number : fallback;
+  }
+
+  function numberOrZero(value) {
+    var number = Number(value);
+    return Number.isFinite(number) ? number : 0;
   }
 
   function cssEscape(value) {
