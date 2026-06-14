@@ -78,6 +78,44 @@ window.ARCTOS_PROJECTS = [
     }
   },
   {
+    id: "today-almanac",
+    title: "Today Almanac",
+    category: "Applications",
+    type: "project",
+    icon: "calendar",
+    accent: "#8b5cf6",
+    showOnDesktop: true,
+    summary: "Today-focused almanac from the today-almanac repository.",
+    url: "https://mee-pooh.com/today-almanac/",
+    repo: "https://github.com/thamarnan/today-almanac",
+    launchMode: "window",
+    window: {
+      width: 1040,
+      height: 720,
+      minWidth: 720,
+      minHeight: 520
+    }
+  },
+  {
+    id: "today-traditional-almanac",
+    title: "Today Traditional Almanac",
+    category: "Applications",
+    type: "project",
+    icon: "calendar",
+    accent: "#c2410c",
+    showOnDesktop: true,
+    summary: "Traditional view for the Today Almanac app.",
+    url: "https://mee-pooh.com/today-almanac/traditional/",
+    repo: "https://github.com/thamarnan/today-almanac/tree/main/traditional",
+    launchMode: "window",
+    window: {
+      width: 920,
+      height: 680,
+      minWidth: 640,
+      minHeight: 500
+    }
+  },
+  {
     id: "resume",
     title: "Resume",
     category: "System",
