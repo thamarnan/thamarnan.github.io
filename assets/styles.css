@@ -577,10 +577,7 @@ button {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background:
-    linear-gradient(45deg, rgba(16, 100, 184, 0.08) 25%, transparent 25% 50%, rgba(16, 100, 184, 0.08) 50% 75%, transparent 75%),
-    #e8f1fb;
-  background-size: 20px 20px;
+  background: #d9d9d9;
 }
 
 .project-frame {

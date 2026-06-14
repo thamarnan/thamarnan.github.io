@@ -39,26 +39,6 @@ window.ARCTOS_PROJECTS = [
     summary: "All ArctOS applications in one window."
   },
   {
-    id: "cal",
-    title: "Cal",
-    category: "Applications",
-    type: "project",
-    icon: "board",
-    accent: "#2d89ef",
-    showOnDesktop: true,
-    summary: "Calendar app from the thamarnan/cal repository.",
-    url: "https://thamarnan.github.io/cal/",
-    repo: "https://github.com/thamarnan/cal",
-    launchMode: "window",
-    window: {
-      viewport: {
-        width: 496,
-        height: 816
-      },
-      autoFit: true
-    }
-  },
-  {
     id: "compactcalendar",
     title: "Compact Calendar",
     category: "Applications",
