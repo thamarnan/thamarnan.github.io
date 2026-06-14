@@ -1465,11 +1465,13 @@ button {
 
   .desktop-icons {
     inset: 0;
+    touch-action: auto;
   }
 
   .shortcut {
     width: 78px;
     min-height: 90px;
+    touch-action: none;
   }
 
   .shortcut-icon {

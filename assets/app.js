@@ -355,6 +355,9 @@
   }
 
   function startDesktopSelection(event) {
+    if (isSmallViewport()) {
+      return;
+    }
     if (event.button !== undefined && event.button !== 0) {
       return;
     }
