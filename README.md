@@ -1,6 +1,6 @@
-# EinsumOS
+# ArctOS
 
-EinsumOS is a static GitHub Pages desktop shell that opens project sites through a retro desktop interface. It has desktop shortcuts, a Start menu, draggable windows, taskbar buttons, themes, and iframe-based project launchers.
+ArctOS is a static GitHub Pages desktop shell that opens project sites through a retro desktop interface. It has desktop shortcuts, a Start menu, draggable windows, taskbar buttons, themes, and iframe-based project launchers.
 
 The visual style is nostalgic but uses original assets and CSS, not Microsoft-owned wallpapers, logos, or icons.
 
@@ -9,7 +9,7 @@ The visual style is nostalgic but uses original assets and CSS, not Microsoft-ow
 Use one repo for the desktop shell and one repo per serious project:
 
 ```txt
-YOUR_GITHUB_USERNAME.github.io/   # this EinsumOS site
+YOUR_GITHUB_USERNAME.github.io/   # this ArctOS site
 weather-app/                     # project site at /weather-app/
 kanban-app/                      # project site at /kanban-app/
 shader-lab/                      # project site at /shader-lab/
@@ -21,7 +21,7 @@ If your GitHub username is `alice`, this repo should normally be named:
 alice.github.io
 ```
 
-Then the EinsumOS URL becomes:
+Then the ArctOS URL becomes:
 
 ```txt
 https://alice.github.io
@@ -63,7 +63,7 @@ Edit [data/projects.js](data/projects.js). Replace `YOUR_GITHUB_USERNAME`, updat
 
 Use `launchMode: "window"` for iframe windows. Use `launchMode: "tab"` for apps that need the full browser window or refuse iframe embedding.
 
-The `window.viewport` size is the app viewport size. EinsumOS adds the titlebar and border around it. `autoFit: true` lets the shell try to resize after the iframe loads, but this only works when browser same-origin rules allow the shell to inspect the app page. The manifest/config size is the reliable path.
+The `window.viewport` size is the app viewport size. ArctOS adds the titlebar and border around it. `autoFit: true` lets the shell try to resize after the iframe loads, but this only works when browser same-origin rules allow the shell to inspect the app page. The manifest/config size is the reliable path.
 
 If the app HTML has default body margin, include that in the viewport size or remove the margin in the app. For example, an app with a `480 x 800` root element and the browser's default `8px` body margin needs a `496 x 816` iframe viewport unless the app sets `body { margin: 0; }`.
 
@@ -73,7 +73,7 @@ If the app HTML has default body margin, include that in the viewport size or re
 2. Make sure the repo has an `index.html` at the publish root, or configure its build to output one.
 3. Enable GitHub Pages for that repo from `Settings` -> `Pages`.
 4. Confirm the project URL works, for example `https://YOUR_GITHUB_USERNAME.github.io/notes-app/`.
-5. Add a new object to `window.EINSUMOS_PROJECTS` in [data/projects.js](data/projects.js):
+5. Add a new object to `window.ARCTOS_PROJECTS` in [data/projects.js](data/projects.js):
 
 ```js
 {
@@ -127,10 +127,10 @@ Use `64 x 64` or `96 x 96` for pixel-art icons. Use `128 x 128` or larger for sm
 For later automation, each project repo can publish a manifest at the project site's published root:
 
 ```txt
-https://YOUR_GITHUB_USERNAME.github.io/weather-app/einsumos.manifest.json
+https://YOUR_GITHUB_USERNAME.github.io/weather-app/arctos.manifest.json
 ```
 
-For Vite/React projects, place that file in `public/einsumos.manifest.json`. For a plain static repo, place it next to `index.html`.
+For Vite/React projects, place that file in `public/arctos.manifest.json`. For a plain static repo, place it next to `index.html`.
 
 Example:
 
@@ -161,8 +161,8 @@ Example:
 Then add the manifest URL in [data/projects.js](data/projects.js):
 
 ```js
-window.EINSUMOS_MANIFESTS = [
-  "/weather-app/einsumos.manifest.json"
+window.ARCTOS_MANIFESTS = [
+  "/weather-app/arctos.manifest.json"
 ];
 ```
 

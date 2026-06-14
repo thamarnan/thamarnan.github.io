@@ -1,4 +1,4 @@
-window.EINSUMOS_OWNER = {
+window.ARCTOS_OWNER = {
   name: "thamarnan",
   role: "Developer desktop",
   avatarInitials: "TN",
@@ -7,7 +7,7 @@ window.EINSUMOS_OWNER = {
   repo: "https://github.com/thamarnan/thamarnan.github.io"
 };
 
-window.EINSUMOS_PROJECTS = [
+window.ARCTOS_PROJECTS = [
   {
     id: "about",
     title: "About Me",
@@ -18,7 +18,7 @@ window.EINSUMOS_PROJECTS = [
     showOnDesktop: true,
     summary: "A compact profile, focus areas, and links.",
     body: [
-      "EinsumOS opens individual project apps as windows.",
+      "ArctOS opens individual project apps as windows.",
       "Use the Start menu or desktop icons to launch live GitHub Pages projects."
     ],
     actions: [
@@ -36,7 +36,7 @@ window.EINSUMOS_PROJECTS = [
     icon: "apps",
     accent: "#2c9b54",
     showOnDesktop: true,
-    summary: "All EinsumOS applications in one window."
+    summary: "All ArctOS applications in one window."
   },
   {
     id: "cal",
@@ -80,7 +80,7 @@ window.EINSUMOS_PROJECTS = [
   }
 ];
 
-window.EINSUMOS_MANIFESTS = [
+window.ARCTOS_MANIFESTS = [
   // Add project-owned manifests later, for example:
-  // "/weather-app/einsumos.manifest.json"
+  // "/weather-app/arctos.manifest.json"
 ];

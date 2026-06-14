@@ -4,16 +4,16 @@
   var owner = Object.assign(
     {
       name: "Your Name",
-      role: "EinsumOS desktop",
+      role: "ArctOS desktop",
       avatarInitials: "YN",
       github: "#",
       email: "",
       repo: "#"
     },
-    window.EINSUMOS_OWNER || {}
+    window.ARCTOS_OWNER || {}
   );
 
-  var projects = normalizeProjects(window.EINSUMOS_PROJECTS || []);
+  var projects = normalizeProjects(window.ARCTOS_PROJECTS || []);
   var windows = new Map();
   var zIndex = 40;
   var activeWindowId = null;
@@ -23,7 +23,7 @@
     programsSubmenu: null,
     programsOpen: false
   };
-  var THEME_STORAGE_KEY = "einsumos.theme";
+  var THEME_STORAGE_KEY = "arctos.theme";
   var THEMES = {
     win98: {
       id: "win98",
@@ -118,7 +118,7 @@
   }
 
   async function loadRemoteManifests() {
-    var configuredManifests = window.EINSUMOS_MANIFESTS;
+    var configuredManifests = window.ARCTOS_MANIFESTS;
     var manifestUrls = Array.isArray(configuredManifests)
       ? configuredManifests.filter(Boolean)
       : [];
@@ -548,7 +548,7 @@
       type: "settings",
       icon: "settings",
       accent: "#61788f",
-      summary: "Change EinsumOS preferences.",
+      summary: "Change ArctOS preferences.",
       window: {
         width: 520,
         height: 430
